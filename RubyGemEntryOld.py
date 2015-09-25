@@ -20,7 +20,7 @@ datasource_id = int(sys.argv[1])
 url = "https://rubygems.org/gems"
 
 #establish database connection
-db = MySQLdb.connect(host="grid6.cs.elon.edu", user="groth", passwd="Monsterhunter12", db="rubygems", use_unicode=True, charset = "utf8")
+db = MySQLdb.connect(host="grid6.cs.elon.edu", user="", passwd="", db="rubygems", use_unicode=True, charset = "utf8")
 cursor = db.cursor()
 cursor.execute('SET NAMES utf8mb4')
 cursor.execute('SET CHARACTER SET utf8mb4')
