@@ -4,6 +4,7 @@ This project can be used to gather and store project names
   and their RSS & html files for Rubygem projects
 Author: Gavan Roth
 Updated by: Megan Squire
+Requires: Python 3
 Usage: python RubyGemsProjectCollector.py <datasource_id> <password>
 '''
 
