@@ -1,7 +1,10 @@
 '''
 Created 7/24/2015
-This project can be used to gather and store project names and their RSS files for Rubygem projects
+This project can be used to gather and store project names 
+  and their RSS & html files for Rubygem projects
 Author: Gavan Roth
+Updated by: Megan Squire
+Usage: python RubyGemsProjectCollector.py <datasource_id> <password>
 '''
 
 import urllib2
@@ -10,13 +13,10 @@ import sys
 import MySQLdb
 import datetime
 
-# takes user inputs
 datasource_id = int(sys.argv[1])
+password = int(sys.argv[2])
 
-#Create constants
 url = "https://rubygems.org/gems"
-
-#Created variables
 countT = 1
 count = 0
 page = 1
@@ -38,13 +38,28 @@ while i < len(letters):
             countT=countT+1
     i = i+1
     countT = 1
-#establish database connection
-db = MySQLdb.connect(host="grid6.cs.elon.edu", user="groth", passwd="Monsterhunter12", db="rubygems", use_unicode=True, charset = "utf8")
+#establish database connections
+db = MySQLdb.connect(host="grid6.cs.elon.edu", 
+    user="megan", 
+    passwd=password, 
+    db="rubygems", 
+    use_unicode=True, 
+    charset = "utf8")
 cursor = db.cursor()
 cursor.execute('SET NAMES utf8mb4')
 cursor.execute('SET CHARACTER SET utf8mb4')
 cursor.execute('SET character_set_connection=utf8mb4')
 
+db1 = MySQLdb.connect(host="flossdata.syr.edu", 
+    user="megan", 
+    passwd=password, 
+    db="rubygems", 
+    use_unicode=True, 
+    charset = "utf8")
+cursor1 = db1.cursor()
+cursor1.execute('SET NAMES utf8mb4')
+cursor1.execute('SET CHARACTER SET utf8mb4')
+cursor1.execute('SET character_set_connection=utf8mb4')
 
 #outer while loop used to itterate through the 26 letters
 while count < len(letters):
@@ -63,6 +78,7 @@ while count < len(letters):
             ref = row['href']
             name = ref[6:]
             print name
+            #---- get RSS for each project
             RSSLink = url + "/" + name + "/versions.atom"
             RSS = urllib2.urlopen(RSSLink)
             soup2 = BeautifulSoup(RSS)
@@ -74,13 +90,51 @@ while count < len(letters):
                  (name, datasource_id, Pagetext, datetime.datetime.now()))
                  db.commit()
             except MySQLdb.Error as error:
-                print "execute"
+                print "insert error"
                 print error
                 db.rollback()
-        print listUrl    
+                
+            try:
+                 cursor1.execute("INSERT INTO `rubygems_projects`(`project_name`, \
+                 `datasource_id`, `rss_file`, `last_updated`) VALUES (%s,%s,%s,%s)", 
+                 (name, datasource_id, Pagetext, datetime.datetime.now()))
+                 db1.commit()
+            except MySQLdb.Error as error:
+                print "insert error"
+                print error
+                db1.rollback()
+                
+           #---- get HTML version for each project
+           # we need these since the Atom file only shows dates > July 2009
+           # but the html version shows dates earlier than that
+            versionsPage = url + "/" + name + "/versions"
+            html = urllib2.urlopen(versionsPage)
+            
+            try:
+                 cursor.execute("UPDATE `rubygems_projects` \
+                    SET html_versions_file = %s, last_updated = %s"), 
+                 (html, datetime.datetime.now()))
+                 db.commit()
+            except MySQLdb.Error as error:
+                print "update error"
+                print error
+                db.rollback()
+                
+            try:
+                 cursor1.execute("UPDATE `rubygems_projects` \
+                    SET html_versions_file = %s, last_updated = %s"), 
+                 (html, datetime.datetime.now()))
+                 db1.commit()
+            except MySQLdb.Error as error:
+                print "update error"
+                print error
+                db1.rollback()
+        print listUrl
         page = page+1
     count = count +1
     page = 1
     
 cursor.close()
-db.close()    
+db.close()  
+cursor1.close()
+db1.close()  
