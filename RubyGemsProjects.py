@@ -7,14 +7,15 @@ Updated by: Megan Squire
 Usage: python RubyGemsProjectCollector.py <datasource_id> <password>
 '''
 
-import urllib2
+from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import sys
-import MySQLdb
+import mysql.connector
+from mysql.connector import errorcode
 import datetime
 
 datasource_id = int(sys.argv[1])
-password = int(sys.argv[2])
+password = str(sys.argv[2])
 
 url = "https://rubygems.org/gems"
 countT = 1
@@ -28,7 +29,7 @@ nums = [None]*26
 
 #Populates the nums array with the curent total number of pages of projects for each letter
 while i < len(letters):
-    p = urllib2.urlopen(url+"?letter=" + letters[i])
+    p = urlopen(url+"?letter=" + letters[i])
     s = BeautifulSoup(p)
     for row in s.findAll('div', { "class" : "pagination" }):
         allTag = row.find_all('a')
@@ -38,28 +39,37 @@ while i < len(letters):
             countT=countT+1
     i = i+1
     countT = 1
-#establish database connections
-db = MySQLdb.connect(host="grid6.cs.elon.edu", 
-    user="megan", 
-    passwd=password, 
-    db="rubygems", 
-    use_unicode=True, 
-    charset = "utf8")
-cursor = db.cursor()
-cursor.execute('SET NAMES utf8mb4')
-cursor.execute('SET CHARACTER SET utf8mb4')
-cursor.execute('SET character_set_connection=utf8mb4')
+# establish database connection: ELON
+try:
+    db = mysql.connector.connect(host='grid6.cs.elon.edu',
+                                  database='rubygems',
+                                  user='megan',
+                                  password=password)
+except mysql.connector.Error as err:
+    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+        print("Something is wrong with your user name or password on ELON")
+    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+        print("Database does not exist")
+    else:
+        print(err)
+else:
+    cursor = db.cursor()
 
-db1 = MySQLdb.connect(host="flossdata.syr.edu", 
-    user="megan", 
-    passwd=password, 
-    db="rubygems", 
-    use_unicode=True, 
-    charset = "utf8")
-cursor1 = db1.cursor()
-cursor1.execute('SET NAMES utf8mb4')
-cursor1.execute('SET CHARACTER SET utf8mb4')
-cursor1.execute('SET character_set_connection=utf8mb4')
+# establish database connection: SYR      
+try:
+    db1 = mysql.connector.connect(host='flossdata.syr.edu',
+                                  database='rubygems',
+                                  user='megan',
+                                  password=password)
+except mysql.connector.Error as err:
+    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+        print("Something is wrong with your user name or password on SYR")
+    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+        print("Database does not exist")
+    else:
+        print(err)
+else:
+    cursor1 = db1.cursor()
 
 #outer while loop used to itterate through the 26 letters
 while count < len(letters):
@@ -70,66 +80,38 @@ while count < len(letters):
     while page < pages+1:
         listUrl = url + "?letter=" + letter +"&" 
         listUrl = listUrl + "page=%d" % page
-        listPage = urllib2.urlopen(listUrl)
+        listPage = urlopen(listUrl)
         soup = BeautifulSoup(listPage)
         
         #Pulls all project names on the given list page
         for row in soup.findAll('a', { "class" : "gems__gem" }):
             ref = row['href']
             name = ref[6:]
-            print name
+            print(name)
             #---- get RSS for each project
             RSSLink = url + "/" + name + "/versions.atom"
-            RSS = urllib2.urlopen(RSSLink)
+            RSS = urlopen(RSSLink)
             soup2 = BeautifulSoup(RSS)
             RSStext = soup2.find('feed')
             Pagetext = str(RSStext)
-            try:
-                 cursor.execute("INSERT INTO `rubygems_projects`(`project_name`, \
-                 `datasource_id`, `rss_file`, `last_updated`) VALUES (%s,%s,%s,%s)", 
-                 (name, datasource_id, Pagetext, datetime.datetime.now()))
-                 db.commit()
-            except MySQLdb.Error as error:
-                print "insert error"
-                print error
-                db.rollback()
-                
-            try:
-                 cursor1.execute("INSERT INTO `rubygems_projects`(`project_name`, \
-                 `datasource_id`, `rss_file`, `last_updated`) VALUES (%s,%s,%s,%s)", 
-                 (name, datasource_id, Pagetext, datetime.datetime.now()))
-                 db1.commit()
-            except MySQLdb.Error as error:
-                print "insert error"
-                print error
-                db1.rollback()
-                
-           #---- get HTML version for each project
-           # we need these since the Atom file only shows dates > July 2009
-           # but the html version shows dates earlier than that
+
+            #--- get HTML versions for each project            
             versionsPage = url + "/" + name + "/versions"
-            html = urllib2.urlopen(versionsPage)
+            html = urlopen(versionsPage)
+            htmlsoup = BeautifulSoup(html)
+            htmltext = str(htmlsoup)
             
-            try:
-                 cursor.execute("UPDATE `rubygems_projects` \
-                    SET html_versions_file = %s, last_updated = %s"), 
-                 (html, datetime.datetime.now()))
-                 db.commit()
-            except MySQLdb.Error as error:
-                print "update error"
-                print error
-                db.rollback()
-                
-            try:
-                 cursor1.execute("UPDATE `rubygems_projects` \
-                    SET html_versions_file = %s, last_updated = %s"), 
-                 (html, datetime.datetime.now()))
-                 db1.commit()
-            except MySQLdb.Error as error:
-                print "update error"
-                print error
-                db1.rollback()
-        print listUrl
+            cursor.execute("INSERT IGNORE INTO `rubygems_projects`(`project_name`, \
+                     `datasource_id`, `rss_file`, html_versions_file, `last_updated`) VALUES (%s,%s,%s,%s,%s)", 
+                     (name, datasource_id, Pagetext, htmltext, datetime.datetime.now()))
+            db.commit()
+ 
+            cursor1.execute("INSERT IGNORE INTO `rubygems_projects`(`project_name`, \
+                    `datasource_id`, `rss_file`, html_versions_file, `last_updated`) VALUES (%s,%s,%s,%s,%s)", 
+                    (name, datasource_id, Pagetext, htmltext, datetime.datetime.now()))
+            db1.commit()
+            
+        print(listUrl)
         page = page+1
     count = count +1
     page = 1
