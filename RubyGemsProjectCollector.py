@@ -4,11 +4,10 @@ This project can be used to gather and store project names
   and their RSS & html files for Rubygem projects
 Author: Gavan Roth
 Updated by: Megan Squire
-Requires: Python 3
 Usage: python RubyGemsProjectCollector.py <datasource_id> <password>
 '''
 
-from urllib.request import urlopen
+import urllib
 from bs4 import BeautifulSoup
 import sys
 import mysql.connector
@@ -18,7 +17,7 @@ import datetime
 datasource_id = int(sys.argv[1])
 password = str(sys.argv[2])
 
-url = "https://rubygems.org/gems"
+urlBase = "https://rubygems.org/gems"
 countT = 1
 count = 0
 page = 1
@@ -30,7 +29,7 @@ nums = [None]*26
 
 #Populates the nums array with the curent total number of pages of projects for each letter
 while i < len(letters):
-    p = urlopen(url+"?letter=" + letters[i])
+    p = urllib.request.urlopen(urlBase+"?letter=" + letters[i])
     s = BeautifulSoup(p)
     for row in s.findAll('div', { "class" : "pagination" }):
         allTag = row.find_all('a')
@@ -54,7 +53,7 @@ except mysql.connector.Error as err:
     else:
         print(err)
 else:
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
 
 # establish database connection: SYR      
 try:
@@ -70,7 +69,7 @@ except mysql.connector.Error as err:
     else:
         print(err)
 else:
-    cursor1 = db1.cursor()
+    cursor1 = db1.cursor(dictionary=True)
 
 #outer while loop used to itterate through the 26 letters
 while count < len(letters):
@@ -79,40 +78,90 @@ while count < len(letters):
     
     #This while loop itterates through all the pages listing the projects of the current letter
     while page < pages+1:
-        listUrl = url + "?letter=" + letter +"&" 
+        listUrl = urlBase + "?letter=" + letter +"&" 
         listUrl = listUrl + "page=%d" % page
-        listPage = urlopen(listUrl)
-        soup = BeautifulSoup(listPage)
-        
+        try:
+            listPage = urllib.request.urlopen(listUrl)
+        except urllib.error.URLError as e:
+            print (e.reason)
+        else:
+            soup = BeautifulSoup(listPage)
+            print(listUrl)
+
         #Pulls all project names on the given list page
         for row in soup.findAll('a', { "class" : "gems__gem" }):
             ref = row['href']
-            name = ref[6:]
-            print(name)
+            projectName = ref[6:]
+            print(projectName)
+            
             #---- get RSS for each project
-            RSSLink = url + "/" + name + "/versions.atom"
-            RSS = urlopen(RSSLink)
-            soup2 = BeautifulSoup(RSS)
-            RSStext = soup2.find('feed')
-            Pagetext = str(RSStext)
+            RSSurl = urlBase + "/" + projectName + "/versions.atom"
+            try:
+                RSSfile = urllib.request.urlopen(RSSurl)
+
+            except urllib.error.URLError as e:
+                print(e.reason)
+            else:
+                RSSsoup = BeautifulSoup(RSSfile)
+                RSSpage = RSSsoup.find('feed')
+                RSSstring = str(RSSpage)
+            
+            #---- get HTML for each project
+            homePageURL = urlBase + "/" + projectName
+            try:
+                homePageFile = urllib.request.urlopen(homePageURL)
+                
+            except urllib.error.URLError as e:
+                print(e.reason)
+         
+            else:
+                homePageSoup = BeautifulSoup(homePageFile)
+                homePageString = str(homePageSoup)
 
             #--- get HTML versions for each project            
-            versionsPage = url + "/" + name + "/versions"
-            html = urlopen(versionsPage)
-            htmlsoup = BeautifulSoup(html)
-            htmltext = str(htmlsoup)
+            versionsPageURL = urlBase + "/" + projectName + "/versions"
             
-            cursor.execute("INSERT IGNORE INTO `rubygems_projects`(`project_name`, \
-                     `datasource_id`, `rss_file`, html_versions_file, `last_updated`) VALUES (%s,%s,%s,%s,%s)", 
-                     (name, datasource_id, Pagetext, htmltext, datetime.datetime.now()))
+            try:
+                versionFile = urllib.request.urlopen(versionsPageURL)
+            except urllib.error.URLError as e:
+                print(e.reason)
+            else:
+                versionSoup = BeautifulSoup(versionFile)
+                versionString = str(versionSoup)
+            
+            cursor.execute("INSERT IGNORE INTO rubygems_projects( \
+                    project_name, \
+                    datasource_id, \
+                    rss_file, \
+                    html_file, \
+                    html_versions_file, \
+                    last_updated) \
+                     VALUES (%s,%s,%s,%s,%s,%s)", 
+                     (projectName, 
+                      datasource_id, 
+                      RSSstring, 
+                      homePageString, 
+                      versionString, 
+                      datetime.datetime.now()))
             db.commit()
  
-            cursor1.execute("INSERT IGNORE INTO `rubygems_projects`(`project_name`, \
-                    `datasource_id`, `rss_file`, html_versions_file, `last_updated`) VALUES (%s,%s,%s,%s,%s)", 
-                    (name, datasource_id, Pagetext, htmltext, datetime.datetime.now()))
+            cursor1.execute("INSERT IGNORE INTO rubygems_projects( \
+                    project_name, \
+                    datasource_id, \
+                    rss_file, \
+                    html_file, \
+                    html_versions_file, \
+                    last_updated) \
+                     VALUES (%s,%s,%s,%s,%s,%s)", 
+                     (projectName, 
+                      datasource_id, 
+                      RSSstring, 
+                      homePageString, 
+                      versionString, 
+                      datetime.datetime.now()))
             db1.commit()
             
-        print(listUrl)
+        
         page = page+1
     count = count +1
     page = 1
