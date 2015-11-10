@@ -1,10 +1,30 @@
+# -*- coding: utf-8 -*-
 '''
-Created 7/24/2015
-This project can be used to gather and store project names 
-  and their RSS & html files for Rubygem projects
-Author: Gavan Roth
-Updated by: Megan Squire
-Usage: python RubyGemsProjectCollector.py <datasource_id> <password>
+This program is free software; you can redistribute it
+and/or modify it under the terms of the Perl Artistic License 2.0.
+
+Copyright (C) 2015 Megan Squire and Gavan Roth
+
+We're working on this at http://flossmole.org - Come help us build 
+an open and accessible repository for data and analyses for open
+source projects.
+
+If you use this code or data for preparing an academic paper please
+provide a citation to 
+
+Howison, J., Conklin, M., & Crowston, K. (2006). FLOSSmole: 
+A collaborative repository for FLOSS research data and analyses. 
+International Journal of Information Technology and Web Engineering, 
+1(3), 17–26.
+
+and
+
+FLOSSmole (2004-2016) FLOSSmole: a project to provide academic access to data 
+and analyses of open source projects.  Available at http://flossmole.org 
+
+usage:
+python RubyGemsProjectCollector.py <datasource_id> <password>
+
 '''
 
 import urllib
@@ -71,7 +91,7 @@ except mysql.connector.Error as err:
 else:
     cursor1 = db1.cursor(dictionary=True)
 
-#outer while loop used to itterate through the 26 letters
+#outer while loop used to iterate through the 26 letters
 while count < len(letters):
     letter = letters[count]
     pages = nums[count]
@@ -118,7 +138,7 @@ while count < len(letters):
                 homePageSoup = BeautifulSoup(homePageFile)
                 homePageString = str(homePageSoup)
 
-            #--- get HTML versions for each project            
+            #---- get HTML versions for each project            
             versionsPageURL = urlBase + "/" + projectName + "/versions"
             
             try:
@@ -129,7 +149,9 @@ while count < len(letters):
                 versionSoup = BeautifulSoup(versionFile)
                 versionString = str(versionSoup)
             
-            cursor.execute("INSERT IGNORE INTO rubygems_projects( \
+            #---- put everything in the database
+            try:
+                cursor.execute("INSERT IGNORE INTO rubygems_projects( \
                     project_name, \
                     datasource_id, \
                     rss_file, \
@@ -143,9 +165,13 @@ while count < len(letters):
                       homePageString, 
                       versionString, 
                       datetime.datetime.now()))
-            db.commit()
+                db.commit()
+            except mysql.connector.Error as err:
+                print(err)
+                db2.rollback()
  
-            cursor1.execute("INSERT IGNORE INTO rubygems_projects( \
+            try:
+                cursor1.execute("INSERT IGNORE INTO rubygems_projects( \
                     project_name, \
                     datasource_id, \
                     rss_file, \
@@ -159,8 +185,10 @@ while count < len(letters):
                       homePageString, 
                       versionString, 
                       datetime.datetime.now()))
-            db1.commit()
-            
+                db1.commit()
+            except mysql.connector.Error as err:
+                print(err)
+                db2.rollback()
         
         page = page+1
     count = count +1
