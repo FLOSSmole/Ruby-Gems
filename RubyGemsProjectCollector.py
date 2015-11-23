@@ -34,8 +34,8 @@ import mysql.connector
 from mysql.connector import errorcode
 import datetime
 
-datasource_id = int(sys.argv[1])
-password = str(sys.argv[2])
+datasource_id = sys.argv[1]
+password = sys.argv[2]
 
 urlBase = "https://rubygems.org/gems"
 countT = 1
@@ -114,7 +114,7 @@ while count < len(letters):
             projectName = ref[6:]
             print(projectName)
             
-            #---- get RSS for each project
+            #---- get RSS atom file for each project
             RSSurl = urlBase + "/" + projectName + "/versions.atom"
             try:
                 RSSfile = urllib.request.urlopen(RSSurl)
@@ -126,7 +126,7 @@ while count < len(letters):
                 RSSpage = RSSsoup.find('feed')
                 RSSstring = str(RSSpage)
             
-            #---- get HTML for each project
+            #---- get HTML base page for each project
             homePageURL = urlBase + "/" + projectName
             try:
                 homePageFile = urllib.request.urlopen(homePageURL)
@@ -151,7 +151,7 @@ while count < len(letters):
             
             #---- put everything in the database
             try:
-                cursor.execute("INSERT IGNORE INTO rubygems_projects( \
+                cursor.execute("INSERT IGNORE INTO rubygems_project_pages( \
                     project_name, \
                     datasource_id, \
                     rss_file, \
@@ -168,10 +168,10 @@ while count < len(letters):
                 db.commit()
             except mysql.connector.Error as err:
                 print(err)
-                db2.rollback()
+                db.rollback()
  
             try:
-                cursor1.execute("INSERT IGNORE INTO rubygems_projects( \
+                cursor1.execute("INSERT IGNORE INTO rubygems_project_pages( \
                     project_name, \
                     datasource_id, \
                     rss_file, \
@@ -188,10 +188,10 @@ while count < len(letters):
                 db1.commit()
             except mysql.connector.Error as err:
                 print(err)
-                db2.rollback()
+                db1.rollback()
         
-        page = page+1
-    count = count +1
+        page = page + 1
+    count = count + 1
     page = 1
     
 cursor.close()
