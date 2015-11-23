@@ -29,8 +29,6 @@ python RubyGemsProjectParser.py <datasource_id> <password>
 
 from bs4 import BeautifulSoup
 import sys
-#import mysql.connector
-#from mysql.connector import errorcode
 import pymysql
 import datetime
 
@@ -488,9 +486,9 @@ def iter_row(cursor):
         yield row
 
 for row in iter_row(cursor):
-    projectName      = row[0]#.decode() #utf8mb4 datatype  
-    htmlFile         = row[1]#.decode() 
-    htmlVersionsFile = row[2]#.decode() 
+    projectName      = row[0] 
+    htmlFile         = row[1] 
+    htmlVersionsFile = row[2] 
     
     print(projectName)
     
