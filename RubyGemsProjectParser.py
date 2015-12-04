@@ -33,7 +33,7 @@ import pymysql
 import datetime
 
 testmode = 0
-startName = 'bosh_cli'
+startName = 'A'
 datasource_id = sys.argv[1]
 password = sys.argv[2]
 
@@ -476,7 +476,9 @@ else:
     selectQuery = "SELECT project_name, html_file, html_versions_file \
         FROM rubygems_project_pages \
         WHERE project_name >= %s AND datasource_id = %s"
+    
     cursor.execute(selectQuery, (startName, datasource_id,))
+    
 
 def iter_row(cursor):
     while True:
