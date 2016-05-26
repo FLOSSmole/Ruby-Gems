@@ -2,40 +2,34 @@
 '''
 This program is free software; you can redistribute it
 and/or modify it under the terms of the Perl Artistic License 2.0.
-
-Copyright (C) 2015 Megan Squire and Gavan Roth
-
+Copyright (C) 2015 Megan Squire, Gavan Roth, and Evan Ashwell
 We're working on this at http://flossmole.org - Come help us build 
 an open and accessible repository for data and analyses for open
 source projects.
-
 If you use this code or data for preparing an academic paper please
 provide a citation to 
-
 Howison, J., Conklin, M., & Crowston, K. (2006). FLOSSmole: 
 A collaborative repository for FLOSS research data and analyses. 
 International Journal of Information Technology and Web Engineering, 
 1(3), 17–26.
-
 and
-
 FLOSSmole (2004-2016) FLOSSmole: a project to provide academic access to data 
 and analyses of open source projects.  Available at http://flossmole.org 
-
 usage:
 python RubyGemsProjectCollector.py <datasource_id> <password>
-
 '''
 
 import urllib
 from bs4 import BeautifulSoup
 import sys
-import mysql.connector
-from mysql.connector import errorcode
+import pymysql
 import datetime
+
+
 
 datasource_id = sys.argv[1]
 password = sys.argv[2]
+
 
 urlBase = "https://rubygems.org/gems"
 countT = 1
@@ -50,7 +44,7 @@ nums = [None]*26
 #Populates the nums array with the curent total number of pages of projects for each letter
 while i < len(letters):
     p = urllib.request.urlopen(urlBase+"?letter=" + letters[i])
-    s = BeautifulSoup(p)
+    s = BeautifulSoup(p, "lxml")
     for row in s.findAll('div', { "class" : "pagination" }):
         allTag = row.find_all('a')
         for tag in allTag:
@@ -61,19 +55,16 @@ while i < len(letters):
     countT = 1
 # establish database connection: ELON
 try:
-    db = mysql.connector.connect(host='grid6.cs.elon.edu',
-                                  database='rubygems',
-                                  user='megan',
-                                  password=password)
-except mysql.connector.Error as err:
-    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-        print("Something is wrong with your user name or password on ELON")
-    elif err.errno == errorcode.ER_BAD_DB_ERROR:
-        print("Database does not exist")
-    else:
-        print(err)
+    db = pymysql.connect(host='grid6.cs.elon.edu',
+                                  database='test',
+                                  user='eashwell',
+                                  password=password,
+                                  charset='utf8')
+except pymysql.Error as err:
+    print(err)
 else:
-    cursor = db.cursor(dictionary=True)
+    cursor = db.cursor()
+
 
 # establish database connection: SYR      
 try:
@@ -91,6 +82,7 @@ except mysql.connector.Error as err:
 else:
     cursor1 = db1.cursor(dictionary=True)
 
+
 #outer while loop used to iterate through the 26 letters
 while count < len(letters):
     letter = letters[count]
@@ -105,14 +97,13 @@ while count < len(letters):
         except urllib.error.URLError as e:
             print (e.reason)
         else:
-            soup = BeautifulSoup(listPage)
+            soup = BeautifulSoup(listPage, "lxml")
             print(listUrl)
 
-        #Pulls all project names on the given list page
+        #Pulls all project names on the given list page 
         for row in soup.findAll('a', { "class" : "gems__gem" }):
             ref = row['href']
             projectName = ref[6:]
-            print(projectName)
             
             #---- get RSS atom file for each project
             RSSurl = urlBase + "/" + projectName + "/versions.atom"
@@ -122,7 +113,7 @@ while count < len(letters):
             except urllib.error.URLError as e:
                 print(e.reason)
             else:
-                RSSsoup = BeautifulSoup(RSSfile)
+                RSSsoup = BeautifulSoup(RSSfile, "lxml")
                 RSSpage = RSSsoup.find('feed')
                 RSSstring = str(RSSpage)
             
@@ -135,19 +126,20 @@ while count < len(letters):
                 print(e.reason)
          
             else:
-                homePageSoup = BeautifulSoup(homePageFile)
+                homePageSoup = BeautifulSoup(homePageFile, "lxml")
                 homePageString = str(homePageSoup)
 
             #---- get HTML versions for each project            
             versionsPageURL = urlBase + "/" + projectName + "/versions"
-            
+            #little confused on how this directly obtains the version
             try:
                 versionFile = urllib.request.urlopen(versionsPageURL)
             except urllib.error.URLError as e:
                 print(e.reason)
             else:
-                versionSoup = BeautifulSoup(versionFile)
+                versionSoup = BeautifulSoup(versionFile, "lxml")
                 versionString = str(versionSoup)
+        
             
             #---- put everything in the database
             try:
@@ -166,10 +158,9 @@ while count < len(letters):
                       versionString, 
                       datetime.datetime.now()))
                 db.commit()
-            except mysql.connector.Error as err:
+            except pymysql.Error as err:
                 print(err)
-                db.rollback()
- 
+                db.rollback()     
             try:
                 cursor1.execute("INSERT IGNORE INTO rubygems_project_pages( \
                     project_name, \
@@ -189,12 +180,12 @@ while count < len(letters):
             except mysql.connector.Error as err:
                 print(err)
                 db1.rollback()
-        
         page = page + 1
     count = count + 1
     page = 1
-    
+
 cursor.close()
-db.close()  
+db.close() 
+ 
 cursor1.close()
 db1.close()  
