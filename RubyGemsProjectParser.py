@@ -1,30 +1,29 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Thu May 26 12:01:56 2016
+
+@author: eashwell2
+"""
+
+# -*- coding: utf-8 -*-
 '''
 This program is free software; you can redistribute it
 and/or modify it under the terms of the Perl Artistic License 2.0.
-
-Copyright (C) 2015 Megan Squire and Gavan Roth
-
+Copyright (C) 2015 Megan Squire, Gavan Roth, and Evan Ashwell
 We're working on this at http://flossmole.org - Come help us build 
 an open and accessible repository for data and analyses for open
 source projects.
-
 If you use this code or data for preparing an academic paper please
 provide a citation to:
-
 Howison, J., Conklin, M., & Crowston, K. (2006). FLOSSmole: 
 A collaborative repository for FLOSS research data and analyses. 
 International Journal of Information Technology and Web Engineering, 
 1(3), 17–26.
-
 and
-
 FLOSSmole (2004-2016) FLOSSmole: a project to provide academic access to data 
 and analyses of open source projects.  Available at http://flossmole.org 
-
 usage:
 python RubyGemsProjectParser.py <datasource_id> <password>
-
 '''
 
 from bs4 import BeautifulSoup
@@ -47,7 +46,6 @@ arguments:
  --pulls out the version 1.0.1 etc
  -- pulls out the date and converts date to proper date format
  -- inserts this info into database
-
 the relevant section of the version file looks like this:
 <ul class="t-list__items">
 <li class="gem__version-wrap">
@@ -95,9 +93,10 @@ def parseHTMLversion(htmlVersionsFile, projectName):
                       
             cursor1.execute(queryVersions, dataVersions)
             db1.commit()
+
             cursor2.execute(queryVersions, dataVersions)
             db2.commit()
-
+            
 '''
 #----------------------------------
 parseHTML()
@@ -240,8 +239,11 @@ def parseHTML(htmlFile, projectName):
                 reqRubyVersion)
         cursor1.execute(queryFacts, dataFacts)
         db1.commit()
+        
         cursor2.execute(queryFacts, dataFacts)
         db2.commit()
+        
+        
             
     '''
     --Runtime Dependencies
@@ -281,8 +283,10 @@ def parseHTML(htmlFile, projectName):
                           rtDepName)
                 cursor1.execute(queryRT, dataRT)
                 db1.commit()
+                
                 cursor2.execute(queryRT, dataRT)
                 db2.commit()
+                
             rtDepNum += 1        
     '''
     --Development Dependencies
@@ -321,8 +325,10 @@ def parseHTML(htmlFile, projectName):
                           
                 cursor1.execute(queryDev, dataDev)
                 db1.commit()
+                
                 cursor2.execute(queryDev, dataDev)
                 db2.commit()
+                
             devDepNum += 1
     '''
     ** Authors
@@ -358,8 +364,10 @@ def parseHTML(htmlFile, projectName):
 
                 cursor1.execute(queryAuthor, dataAuthor)
                 db1.commit() 
+                
                 cursor2.execute(queryAuthor, dataAuthor)
                 db2.commit()
+                
             authorNum += 1
     '''
     ** Owners
@@ -395,8 +403,10 @@ def parseHTML(htmlFile, projectName):
 
                 cursor1.execute(queryOwner, dataOwner)
                 db1.commit()
+                
                 cursor2.execute(queryOwner, dataOwner)
                 db2.commit()
+                
             ownerNum += 1                
     '''
     ** Links
@@ -433,24 +443,47 @@ def parseHTML(htmlFile, projectName):
 
             cursor1.execute(queryLink, dataLink)
             db1.commit()
+            
             cursor2.execute(queryLink, dataLink)
             db2.commit()
-
+            
+    '''
+    ** Create Dates
+    
+    ask how to document
+    '''
+    createDates= htmlSoup.find_all("small",class_="gem__version__date")
+    first_date= str(createDates[-1].string)[2:]
+    first_date=datetime.datetime.strptime(first_date, "%B %d, %Y").date()
+    if testmode== 1:
+        print("first_date: ",first_date)
+    else:
+        queryCreated= "INSERT INTO `rubygems_project_create_dates`\
+        (`project_name`, `datasource_id`, `first_known_create`)\
+        VALUES (%s,%s,%s)"
+        dataCreated=(str(projectName),
+                    int(datasource_id),
+                    first_date)
+        cursor1.execute(queryCreated, dataCreated)
+        db1.commit()
         
+        cursor2.execute(queryCreated, dataCreated)
+        db2.commit()
+
 # MAIN
 # establish database connection: ELON, for SELECT
 
 db = pymysql.connect(host='grid6.cs.elon.edu',
-                                 db='rubygems',
-                                 user='megan',
+                                 db='test',
+                                 user='eashwell',
                                  passwd=password,
                                  port=3306)
 cursor = db.cursor()
 
 # establish database connection: ELON, for INSERT
 db1 = pymysql.connect(host='grid6.cs.elon.edu',
-                                 db='rubygems',
-                                 user='megan',
+                                 db='test',
+                                 user='eashwell',
                                  passwd=password,
                                  port=3306)
 
@@ -464,7 +497,7 @@ db2 = pymysql.connect(host='flossdata.syr.edu',
                                   passwd=password,
                                   port=3306)
 cursor2 = db2.cursor()
-    
+  
 # select the project names and files from the database for this datasource_id
 if testmode == 1:
     selectQuery = "SELECT project_name, html_file, html_versions_file \
@@ -500,6 +533,7 @@ for row in iter_row(cursor):
 cursor.close()
 cursor1.close()
 cursor2.close()
+
 db.close()
 db1.close()
 db2.close()
