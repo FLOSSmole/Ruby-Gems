@@ -19,17 +19,14 @@ usage:
 python RubyGemsProjectCollector.py <datasource_id> <password>
 '''
 
-import urllib
+import urllib.request
 from bs4 import BeautifulSoup
 import sys
 import pymysql
 import datetime
 
-
-
 datasource_id = sys.argv[1]
 password = sys.argv[2]
-
 
 urlBase = "https://rubygems.org/gems"
 countT = 1
@@ -53,11 +50,12 @@ while i < len(letters):
             countT=countT+1
     i = i+1
     countT = 1
+
 # establish database connection: ELON
 try:
     db = pymysql.connect(host='grid6.cs.elon.edu',
-                                  database='test',
-                                  user='eashwell',
+                                  database='rubygems',
+                                  user='megan',
                                   password=password,
                                   charset='utf8')
 except pymysql.Error as err:
@@ -68,19 +66,15 @@ else:
 
 # establish database connection: SYR      
 try:
-    db1 = mysql.connector.connect(host='flossdata.syr.edu',
+    db1 = pymysql.connect(host='flossdata.syr.edu',
                                   database='rubygems',
                                   user='megan',
-                                  password=password)
-except mysql.connector.Error as err:
-    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-        print("Something is wrong with your user name or password on SYR")
-    elif err.errno == errorcode.ER_BAD_DB_ERROR:
-        print("Database does not exist")
-    else:
-        print(err)
+                                  password=password,
+                                  charset='utf8')
+except pymysql.Error as err:
+    print(err)
 else:
-    cursor1 = db1.cursor(dictionary=True)
+    cursor1 = db1.cursor()
 
 
 #outer while loop used to iterate through the 26 letters
@@ -177,7 +171,7 @@ while count < len(letters):
                       versionString, 
                       datetime.datetime.now()))
                 db1.commit()
-            except mysql.connector.Error as err:
+            except pymysql.Error as err:
                 print(err)
                 db1.rollback()
         page = page + 1
