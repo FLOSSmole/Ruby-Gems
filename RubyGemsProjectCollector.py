@@ -26,7 +26,8 @@ import pymysql
 import datetime
 
 datasource_id = sys.argv[1]
-password = sys.argv[2]
+previous_datasource_id= sys.argv[2]
+password = sys.argv[3]
 
 urlBase = "https://rubygems.org/gems"
 countT = 1
@@ -54,17 +55,33 @@ while i < len(letters):
 # establish database connection: ELON
 try:
     db = pymysql.connect(host='grid6.cs.elon.edu',
-                                  database='rubygems',
-                                  user='megan',
+                                  database='test',
+                                  user='eashwell',
                                   password=password,
                                   charset='utf8')
 except pymysql.Error as err:
     print(err)
 else:
     cursor = db.cursor()
+    if datasource_id == previous_datasource_id:
+        cursor2= db.cursor()
+        selectQuery= "SELECT `project_name`,`page_number`\
+        FROM `rubygems_project_pages`\
+        WHERE datasource_id = %s \
+        ORDER BY `rubygems_project_pages`.`project_name`  DESC LIMIT 1"
 
+        cursor2.execute(selectQuery, (datasource_id))
 
+        found= cursor2.fetchone()
+        project= found[0][0].upper()
+        position= letters.index(project)
+        while position > 0:
+            letters.remove(letters[0])
+            nums.remove(nums[0])
+            position= position-1
+        page= (page+int(found[0][1]))-1
 # establish database connection: SYR      
+"""
 try:
     db1 = pymysql.connect(host='flossdata.syr.edu',
                                   database='rubygems',
@@ -75,7 +92,7 @@ except pymysql.Error as err:
     print(err)
 else:
     cursor1 = db1.cursor()
-
+"""
 
 #outer while loop used to iterate through the 26 letters
 while count < len(letters):
@@ -134,7 +151,7 @@ while count < len(letters):
                 versionSoup = BeautifulSoup(versionFile, "lxml")
                 versionString = str(versionSoup)
         
-            
+"""        
             #---- put everything in the database
             try:
                 cursor.execute("INSERT IGNORE INTO rubygems_project_pages( \
@@ -143,18 +160,21 @@ while count < len(letters):
                     rss_file, \
                     html_file, \
                     html_versions_file, \
+                    page_number, \
                     last_updated) \
-                     VALUES (%s,%s,%s,%s,%s,%s)", 
+                     VALUES (%s,%s,%s,%s,%s,%s,%s)", 
                      (projectName, 
                       datasource_id, 
                       RSSstring, 
                       homePageString, 
-                      versionString, 
+                      versionString,
+                      page,
                       datetime.datetime.now()))
                 db.commit()
             except pymysql.Error as err:
                 print(err)
-                db.rollback()     
+                db.rollback()
+
             try:
                 cursor1.execute("INSERT IGNORE INTO rubygems_project_pages( \
                     project_name, \
@@ -177,9 +197,12 @@ while count < len(letters):
         page = page + 1
     count = count + 1
     page = 1
+"""
 
 cursor.close()
+cursor2.close()
 db.close() 
- 
+"""
 cursor1.close()
-db1.close()  
+db1.close()
+"""
