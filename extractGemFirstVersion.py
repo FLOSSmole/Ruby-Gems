@@ -1,8 +1,33 @@
 # -*- coding: utf-8 -*-
-# usage: extractGemFirstVersion.py <datasource_id> <password>
-# purpose:
-# select all the gems in order by lowest version date
-# insert their first known version into the db
+'''
+This program is free software; you can redistribute it
+and/or modify it under the terms of the Perl Artistic License 2.0.
+
+Copyright (C) 2016 Megan Squire 
+
+We're working on this at http://flossmole.org - Come help us build 
+an open and accessible repository for data and analyses for open
+source projects.
+
+If you use this code or data for preparing an academic paper please
+provide a citation to:
+
+Howison, J., Conklin, M., & Crowston, K. (2006). FLOSSmole: 
+A collaborative repository for FLOSS research data and analyses. 
+International Journal of Information Technology and Web Engineering, 
+1(3), 17–26.
+
+and
+
+FLOSSmole (2004-2016) FLOSSmole: a project to provide academic access to data 
+and analyses of open source projects.  Available at http://flossmole.org 
+
+usage:
+> python extractGemFirstVersion.py <datasource_id> <password>
+purpose:
+select all the gems in order by lowest version date
+insert their first known version into the db
+'''
 
 import pymysql
 import sys
@@ -54,14 +79,8 @@ else:
 selectData = (datasource_id,)
 cursor.execute(selectQuery, selectData)
 
-def iter_row(cursor):
-    while True:
-        row = cursor.fetchone()
-        if not row:
-            break
-        yield row
-
-for row in iter_row(cursor):
+rows = cursor.fetchall()
+for row in rows:
     projectName      = row[0] 
     firstCreateDate  = row[1]  
     
