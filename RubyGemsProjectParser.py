@@ -45,7 +45,6 @@ password      = sys.argv[2]
 testmode      = 0
 startName     = ''
 
-
 '''
 #----------------------------------
 parseHTMLversion()
@@ -88,7 +87,7 @@ def parseHTMLversion(htmlVersionsFile, projectName):
             print("date converted: ", dateConverted)
         else:
             #print("--entering project versions")
-            queryVersions = "INSERT INTO rubygems_project_versions( \
+            queryVersions = "INSERT IGNORE INTO rubygems_project_versions( \
                     project_name, \
                     datasource_id, \
                     version_number, \
@@ -191,9 +190,7 @@ def parseHTML(htmlFile, projectName):
             <i class="gem__ruby-version">
                 &gt;= 0
             </i>
-    </h2>  
-    
-    
+    </h2>
     '''
     
     h2List = htmlSoup.find_all("h2",class_="gem__ruby-version__heading t-list__heading")
@@ -208,7 +205,7 @@ def parseHTML(htmlFile, projectName):
             if i:
                 reqRubyVersion = str(i.string.strip())
         
-        '''
+    '''
     if h2List[2]:
         h2License = h2List[2]
         span = h2License.find("span")
@@ -228,7 +225,7 @@ def parseHTML(htmlFile, projectName):
         print("required Ruby version: ", reqRubyVersion)
     else:
         #print("--entering project facts")
-        queryFacts = "INSERT INTO rubygems_project_facts( \
+        queryFacts = "INSERT IGNORE INTO rubygems_project_facts( \
                 project_name, \
                 datasource_id, \
                 project_description, \
@@ -275,7 +272,7 @@ def parseHTML(htmlFile, projectName):
                 print("rt Dep Name: ",rtDepName)
             else:
                 #print("--entering rtdep")
-                queryRT = "INSERT INTO rubygems_project_rtdep(\
+                queryRT = "INSERT IGNORE INTO rubygems_project_rtdep(\
                         project_name, \
                         datasource_id, \
                         dependency_num, \
@@ -314,7 +311,7 @@ def parseHTML(htmlFile, projectName):
                 print("dev Dep Name: ",devDepName)
             else:
                 #print("--entering devdep")
-                queryDev = "INSERT INTO rubygems_project_devdep(\
+                queryDev = "INSERT IGNORE INTO rubygems_project_devdep(\
                         project_name, \
                         datasource_id, \
                         dependency_num, \
@@ -353,7 +350,7 @@ def parseHTML(htmlFile, projectName):
                 print("authorName: ",authorName)
             else:
                 #print("--entering authors")
-                queryAuthor = "INSERT INTO rubygems_project_authors(\
+                queryAuthor = "INSERT IGNORE INTO rubygems_project_authors(\
                         project_name, \
                         datasource_id, \
                         author_num, \
@@ -388,7 +385,7 @@ def parseHTML(htmlFile, projectName):
                 print("ownerName: ",ownerName)
             else:
                 #print("--entering owners")
-                queryOwner = "INSERT INTO rubygems_project_owners(\
+                queryOwner = "INSERT IGNORE INTO rubygems_project_owners(\
                         project_name, \
                         datasource_id, \
                         owner_num, \
@@ -428,7 +425,7 @@ def parseHTML(htmlFile, projectName):
             print("linkHref: ",linkHref)
         else:
             #print("--entering links")
-            queryLink = "INSERT INTO rubygems_project_links(\
+            queryLink = "INSERT IGNORE INTO rubygems_project_links(\
                     project_name, \
                     datasource_id, \
                     link_type, \
@@ -453,6 +450,7 @@ db = pymysql.connect(host='grid6.cs.elon.edu',
                                  user='megan',
                                  passwd=password,
                                  port=3306,
+                                 use_unicode=True,
                                  charset='utf8mb4')
 cursor = db.cursor()
 
@@ -462,6 +460,7 @@ db1 = pymysql.connect(host='grid6.cs.elon.edu',
                                  user='megan',
                                  passwd=password,
                                  port=3306,
+                                 use_unicode=True,
                                  charset='utf8mb4')
 
 cursor1 = db1.cursor()
@@ -473,6 +472,7 @@ db2 = pymysql.connect(host='flossdata.syr.edu',
                                   user='megan',
                                   passwd=password,
                                   port=3306,
+                                  use_unicode=True,
                                   charset='utf8mb4')
 cursor2 = db2.cursor()
     
