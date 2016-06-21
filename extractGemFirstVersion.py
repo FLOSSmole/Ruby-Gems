@@ -32,7 +32,12 @@ insert their first known version into the db
 import pymysql
 import sys
 
-testmode = 0
+# modes are 0=normal, 1=test, 2=restart
+mode = 0
+startdate = ''
+if mode == 2 and startdate == '':
+    print('You must enter a startdate if you are in RESTART mode.')
+    exit()
 
 datasource_id = sys.argv[1]
 password = sys.argv[2]
@@ -64,19 +69,29 @@ db2 = pymysql.connect(host='flossdata.syr.edu',
                      charset='utf8mb4')
 cursor2 = db2.cursor()
 
-if testmode == 1:
+selectData = (datasource_id,)
+if mode == 1:
     selectQuery = "SELECT project_name, MIN(version_date_conv) \
                 FROM rubygems_project_versions \
                 WHERE datasource_id = %s \
-                GROUP BY 1 ORDER BY 2, 1 ASC \
-                LIMIT 10"
+                GROUP BY 1  \
+                ORDER BY 2, 1 ASC \
+                LIMIT 10;"
+elif mode == 2:
+    selectQuery = "SELECT project_name, MIN(version_date_conv) \
+                FROM rubygems_project_versions \
+                WHERE datasource_id = %s \
+                GROUP BY 1  \
+                HAVING MIN(version_date_conv) >= %s \
+                ORDER BY 2, 1 ASC;"
+    selectData = (datasource_id,startdate)
 else:
     selectQuery = "SELECT project_name, MIN(version_date_conv) \
                 FROM rubygems_project_versions \
                 WHERE datasource_id = %s \
-                GROUP BY 1 ORDER BY 2, 1 ASC"
+                GROUP BY 1 \
+                ORDER BY 2, 1 ASC;"
 
-selectData = (datasource_id,)
 cursor.execute(selectQuery, selectData)
 
 rows = cursor.fetchall()
