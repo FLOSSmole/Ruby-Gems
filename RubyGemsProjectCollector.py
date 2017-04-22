@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 ## This program is free software; you can redistribute it
-## and/or modify it under the same terms as Perl.
-## Please see the Perl Artistic License 2.0.
+## and/or modify it under the GPLv3
 ## 
 ## Copyright (C) 2004-2016 Megan Squire <msquire@elon.edu>
 ## Contributors: Evan Ashwell, Gavan Roth
@@ -50,9 +49,9 @@ i = 0
 
 # establish database connection: ELON
 try:
-    db = pymysql.connect(host='grid6.cs.elon.edu',
-                        database='rubygems',
-                        user='megan',
+    db = pymysql.connect(host='',
+                        database='',
+                        user='',
                         password=password,
                         use_unicode=True,
                         charset='utf8')
@@ -64,9 +63,9 @@ else:
 
 # establish database connection: SYR
 try:
-    db1 = pymysql.connect(host='flossdata.syr.edu',
-                        database='rubygems',
-                        user='megan',
+    db1 = pymysql.connect(host='',
+                        database='',
+                        user='',
                         password=password,
                         use_unicode=True,
                         charset='utf8')
@@ -76,7 +75,7 @@ else:
     cursor1 = db1.cursor()
    
 
-#Create arrays with letters and their corresponding number of pages
+# Create arrays with letters and their corresponding number of pages
 letters = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
 nums = [None]*26
 
@@ -85,7 +84,8 @@ if status == 'RESTART':
     selectQuery = "SELECT project_name, page_number \
         FROM rubygems_project_pages \
         WHERE datasource_id = %s \
-        ORDER BY project_name DESC LIMIT 1;"    
+        ORDER BY project_name \
+        DESC LIMIT 1;"    
     cursor.execute(selectQuery, (datasource_id))
     found    = cursor.fetchone()
     project  = found[0][0].upper()
@@ -157,10 +157,10 @@ while count < len(letters):
                 print("getting HTML for",projectName)
                 try:
                     homePageFile = urllib.request.urlopen(homePageURL)
-                
+
                 except urllib.error.URLError as e:
                     print(e.reason)
-         
+
                 else:
                     homePageSoup = BeautifulSoup(homePageFile, "lxml")
                     homePageString = str(homePageSoup)
