@@ -306,10 +306,10 @@ def parseHTML(htmlFile, projectName):
 # MAIN
 # establish database connection: SYR
 
-db = pymysql.connect(host='flossdata.syr.edu',
-                     user='cfrankel',
-                     passwd='Marco1997',
-                     db='test',
+db = pymysql.connect(host='',
+                     user='',
+                     passwd='',
+                     db='',
                      use_unicode=True,
                      charset="utf8mb4",
                      autocommit=True)
