@@ -26,9 +26,6 @@
 # usage:
 # python RubyGemsProjectCollector.py <datasource_id> <status> <password>
 # where <status> is one of RESTART or NEW
-#
-# purpose:
-#
 # ---------------------------------------------------------------
 
 import urllib.request
@@ -140,9 +137,15 @@ while count < len(letters):
 
             # something was wrong with the RSS file for
             # some large projects. They are causing a socket error to SYR
-            # if projectName != 'bioroebe':
-            # if projectName != 'cookbook':
-            if projectName != 'beautiful_url':
+            badProjects = ['beautiful_url',
+                           'bioroebe',
+                           'cookbooks',
+                           'cyberweb',
+                           'diamond_shell',
+                           'multimedia_paradise',
+                           'rbt',
+                           'studium']
+            if projectName not in badProjects:
                 # ---- get RSS atom file for each project
                 RSSurl = urlBase + "/" + projectName + "/versions.atom"
                 print("getting RSS for", projectName)
